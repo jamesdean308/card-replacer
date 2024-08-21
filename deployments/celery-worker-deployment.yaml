@@ -1,0 +1,39 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: celery-worker
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: celery-worker
+  template:
+    metadata:
+      labels:
+        app: celery-worker
+    spec:
+      containers:
+      - name: celery-worker
+        image: card-replacer-web:latest
+        imagePullPolicy: Never
+        command: ["celery", "-A", "app.tasks", "worker", "--loglevel=info", "-E"]
+        env:
+        - name: CELERY_BROKER_URL
+          value: redis://redis:6379/0
+        - name: CELERY_RESULT_BACKEND
+          value: redis://redis:6379/0
+        - name: DATABASE_URL
+          value: "postgresql://card_user:password@postgres/card_request_db"
+        - name: DB_HOST
+          value: "postgres"
+        - name: DB_PORT
+          value: "5432"
+        - name: POSTGRES_USER
+          value: "card_user"
+        - name: POSTGRES_PASSWORD
+          value: "password"
+        resources:
+          limits:
+            cpu: 500m
+          requests:
+            cpu: 200m
