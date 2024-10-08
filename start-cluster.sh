@@ -57,5 +57,16 @@ kubectl get hpa celery-worker-hpa
 echo "Update complete."
 
 # Port forward the Flask app service to localhost
+# it will run in the background while we run the e2e tests to make sure everything is working
+kubectl port-forward service/flask-app-service 5000:80 &
+PORT_FORWARD_PID=$!
+
+# Not the most elegant solution, but we need to give the cluster some time to finish the port 
+# forwarding because e2e tests are dependant on being able to access the cluster
+sleep 5
+
+# Run end to end tests to ensure things are working
+pytest tests/e2e
+
 # CLI will hang until you Ctrl + C
-kubectl port-forward service/flask-app-service 5000:80
+wait $PORT_FORWARD_PID
