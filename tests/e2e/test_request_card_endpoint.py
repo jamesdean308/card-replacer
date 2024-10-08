@@ -1,5 +1,6 @@
 import requests
 import time
+import pytest
 
 base_url = "http://localhost:5000"
 
@@ -39,7 +40,6 @@ def get_task_result(task_id):
     task_result_url = f"{base_url}/tasks/{task_id}"
     while True:
         result_response = requests.get(task_result_url)
-        print("result_response", result_response)
         result_data = result_response.json()
         task_status = result_data.get("status")
         print(f"Task Status: {task_status}")
@@ -50,40 +50,25 @@ def get_task_result(task_id):
         time.sleep(2)
 
 
-if __name__ == "__main__":
+def test_card_replacement_flow():
     username = "testuser"
     password = "testpassword"
 
+    # Log in and delete the user if they exist
     token = login_user(username, password)
-    print("token:", token)
-
     if token:
         delete_response = delete_user(token)
-        print(delete_response.status_code)
-        print(delete_response.json())
-
-    print("Registering user...")
+        assert delete_response.status_code == 200
     register_response = register_user(username, password)
-    print(register_response.status_code, register_response.json())
+    assert register_response.status_code == 201
 
-    if register_response.status_code == 201:
+    token = login_user(username, password)
+    assert token is not None
 
-        print("Logging in user...")
-        token = login_user(username, password)
-        if token:
-            print("Login successful, token received.")
-            print("Requesting card...")
-            card_response = request_card(token)
-            print(card_response.status_code, card_response.json())
-            task_id = card_response.json().get("task_id")
+    card_response = request_card(token)
+    assert card_response.status_code == 201
+    task_id = card_response.json().get("task_id")
+    assert task_id is not None
 
-            if task_id:
-                print("Fetching task result...")
-                result = get_task_result(task_id)
-                print(f"Task Result: {result}")
-            else:
-                print("No task ID returned in card request response.")
-        else:
-            print("Login failed.")
-    else:
-        print("User registration failed.")
+    result = get_task_result(task_id)
+    assert result == "Card request processed successfully"

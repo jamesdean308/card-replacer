@@ -33,7 +33,13 @@ spec:
         - name: POSTGRES_PASSWORD
           value: "password"
         resources:
+          # 'limits' specifies the maximum amount of CPU that the container
+          # can use. In this case, it is limited to 500 milliCPUs (0.5 CPU cores).
           limits:
             cpu: 500m
+          # 'requests' specifies the guaranteed minimum amount of CPU that the container
+          # will get. The Kubernetes scheduler uses this value to determine where to place the pod.
+          # In this case, the container requests 200 milliCPUs (0.2 CPU cores), meaning it is 
+          # guaranteed this amount but can use more up to the limit of 500m.
           requests:
             cpu: 200m

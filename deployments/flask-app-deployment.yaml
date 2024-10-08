@@ -49,4 +49,5 @@ spec:
     - protocol: TCP
       port: 80        # The port your service will use inside the cluster
       targetPort: 5000 # The port your Flask app is listening on
+      nodePort: 30000  # <-- Specify a fixed NodePort here (e.g., 30000)
   type: NodePort
