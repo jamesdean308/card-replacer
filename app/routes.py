@@ -1,3 +1,20 @@
+# pylint: disable=E1101
+
+"""
+This module defines the routes for the Flask application, including endpoints for
+user registration, login, card requests, task management, and user deletion.
+
+Routes:
+- /add: Adds two numbers asynchronously.
+- /tasks/<task_id>: Retrieves the status and result of an asynchronous task.
+- /register: Registers a new user.
+- /login: Authenticates a user and returns access and refresh tokens.
+- /refresh: Refreshes the access token.
+- /request_card: Submits a new card request asynchronously.
+- /card_requests: Retrieves all card requests for the authenticated user.
+- /delete_user: Deletes the authenticated user account.
+"""
+
 from celery.result import AsyncResult
 from flask import Blueprint, jsonify, request
 from flask_jwt_extended import (
@@ -18,6 +35,14 @@ main = Blueprint("main", __name__)
 
 @main.route("/add", methods=["POST"])
 def add_route():
+    """
+    Add two numbers asynchronously.
+
+    The input JSON should contain `x` and `y`, representing the numbers to add.
+
+    Returns:
+        JSON response with the task ID of the asynchronous addition.
+    """
     data = request.get_json()
     x = data.get("x")
     y = data.get("y")
@@ -27,9 +52,17 @@ def add_route():
 
 @main.route("/tasks/<task_id>", methods=["GET"])
 def get_task_status(task_id):
+    """
+    Get the status and result of an asynchronous task.
+
+    Args:
+        task_id (str): The ID of the task.
+
+    Returns:
+        JSON response with the task ID, status, and result.
+    """
     result = AsyncResult(task_id)
 
-    # Check if the task has failed and return the exception as a string
     if result.failed():
         response = {
             "task_id": task_id,
@@ -43,12 +76,19 @@ def get_task_status(task_id):
             "result": result.result,
         }
 
-    print("response:", response)
     return jsonify(response), 200
 
 
 @main.route("/register", methods=["POST"])
 def register():
+    """
+    Register a new user.
+
+    The input JSON should contain `username` and `password`.
+
+    Returns:
+        JSON response indicating the registration status.
+    """
     data = request.get_json()
     username = data.get("username")
     password = data.get("password")
@@ -70,6 +110,14 @@ limiter = Limiter(key_func=get_remote_address)
 @main.route("/login", methods=["POST"])
 @limiter.limit("5 per minute")  # Allow 5 login attempts per minute per IP address
 def login():
+    """
+    Log in a user and return access and refresh tokens.
+
+    The input JSON should contain `username` and `password`.
+
+    Returns:
+        JSON response with access and refresh tokens or an error message.
+    """
     data = request.get_json()
     if not data or not data.get("username") or not data.get("password"):
         return jsonify({"msg": "Missing username or password"}), 400
@@ -89,6 +137,12 @@ def login():
 @main.route("/refresh", methods=["POST"])
 @jwt_required(refresh=True)
 def refresh():
+    """
+    Refresh the access token for the current user.
+
+    Returns:
+        JSON response with the new access token.
+    """
     current_user = get_jwt_identity()
     access_token = create_access_token(identity=current_user)
     return jsonify(access_token=access_token), 200
@@ -97,9 +151,14 @@ def refresh():
 @main.route("/request_card", methods=["POST"])
 @jwt_required()
 def request_card():
+    """
+    Submit a new card request asynchronously.
+
+    Returns:
+        JSON response indicating the submission status or an error message.
+    """
     user_id = get_jwt_identity()
 
-    # Check for any pending card requests for the user
     pending_request = CardRequest.query.filter_by(
         user_id=user_id, status="pending"
     ).first()
@@ -107,7 +166,8 @@ def request_card():
         return (
             jsonify(
                 {
-                    "msg": "You already have a pending card request. Please wait until it is processed."
+                    "msg": "You already have a pending card request. "
+                    "Please wait until it is processed."
                 }
             ),
             400,
@@ -117,7 +177,6 @@ def request_card():
     db.session.add(new_request)
     db.session.commit()
 
-    # Process the card request asynchronously
     task = process_card_request.delay(new_request.id)
 
     return jsonify({"msg": "Card request submitted", "task_id": task.id}), 201
@@ -126,6 +185,12 @@ def request_card():
 @main.route("/card_requests", methods=["GET"])
 @jwt_required()
 def get_card_requests():
+    """
+    Retrieve all card requests for the authenticated user.
+
+    Returns:
+        JSON response with a list of card requests.
+    """
     user_id = get_jwt_identity()
     requests = CardRequest.query.filter_by(user_id=user_id).all()
 
@@ -145,6 +210,12 @@ def get_card_requests():
 @main.route("/delete_user", methods=["DELETE"])
 @jwt_required()
 def delete_user():
+    """
+    Delete the authenticated user's account.
+
+    Returns:
+        JSON response indicating the deletion status.
+    """
     user_id = get_jwt_identity()
     user = User.query.get(user_id)
     if not user:
