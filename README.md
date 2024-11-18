@@ -1,5 +1,6 @@
 # Card Replacer
 [![Pylint Check](https://github.com/jamesdean308/card-replacer/actions/workflows/pylint-check.yml/badge.svg)](https://github.com/jamesdean308/card-replacer/actions/workflows/pylint-check.yml)
+
 This project is a prototype of what I imagine a scalable microservice application for processing bank card replacement requests would look like. It utilises Flask for the web interface, Celery for task queue management, and Kubernetes for orchestration and auto-scaling.
 
 ## Features
